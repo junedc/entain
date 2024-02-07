@@ -73,11 +73,18 @@ func (r *racesRepo) applyFilter(query string, filter *racing.ListRacesRequestFil
 	}
 
 	if len(filter.MeetingIds) > 0 {
+		//count the number of meeting ids and create a SQL query with parameter denoted by ?
 		clauses = append(clauses, "meeting_id IN ("+strings.Repeat("?,", len(filter.MeetingIds)-1)+"?)")
 
+		//pass the actual value of the meeting ids as argument
 		for _, meetingID := range filter.MeetingIds {
 			args = append(args, meetingID)
 		}
+	}
+
+	//call ListRaces asking for races that are visible only
+	if filter.Visible != nil && filter.GetVisible() {
+		clauses = append(clauses, "visible = true")
 	}
 
 	if len(clauses) != 0 {
