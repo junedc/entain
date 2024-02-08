@@ -18,7 +18,7 @@ type RacesRepo interface {
 	Init() error
 
 	// List will return a list of races.
-	List(filter *racing.ListRacesRequestFilter) ([]*racing.Race, error)
+	List(request *racing.ListRacesRequest) ([]*racing.Race, error)
 }
 
 type racesRepo struct {
@@ -43,7 +43,7 @@ func (r *racesRepo) Init() error {
 	return err
 }
 
-func (r *racesRepo) List(filter *racing.ListRacesRequestFilter) ([]*racing.Race, error) {
+func (r *racesRepo) List(request *racing.ListRacesRequest) ([]*racing.Race, error) {
 	var (
 		err   error
 		query string
@@ -52,7 +52,7 @@ func (r *racesRepo) List(filter *racing.ListRacesRequestFilter) ([]*racing.Race,
 
 	query = getRaceQueries()[racesList]
 
-	query, args = r.applyFilter(query, filter)
+	query, args = r.applyFilter(query, request)
 
 	rows, err := r.db.Query(query, args...)
 	if err != nil {
@@ -62,34 +62,51 @@ func (r *racesRepo) List(filter *racing.ListRacesRequestFilter) ([]*racing.Race,
 	return r.scanRaces(rows)
 }
 
-func (r *racesRepo) applyFilter(query string, filter *racing.ListRacesRequestFilter) (string, []interface{}) {
+func (r *racesRepo) applyFilter(query string, request *racing.ListRacesRequest) (string, []interface{}) {
 	var (
 		clauses []string
 		args    []interface{}
 	)
 
-	if filter == nil {
+	if request == nil {
 		return query, args
 	}
 
-	if len(filter.MeetingIds) > 0 {
+	if len(request.Filter.MeetingIds) > 0 {
 		//count the number of meeting ids and create a SQL query with parameter denoted by ?
-		clauses = append(clauses, "meeting_id IN ("+strings.Repeat("?,", len(filter.MeetingIds)-1)+"?)")
+		clauses = append(clauses, "meeting_id IN ("+strings.Repeat("?,", len(request.Filter.MeetingIds)-1)+"?)")
 
 		//pass the actual value of the meeting ids as argument
-		for _, meetingID := range filter.MeetingIds {
+		for _, meetingID := range request.Filter.MeetingIds {
 			args = append(args, meetingID)
 		}
 	}
 
 	//call ListRaces asking for races that are visible only
-	if filter.Visible != nil && filter.GetVisible() {
+	if request.Filter.Visible != nil && request.Filter.GetVisible() {
 		clauses = append(clauses, "visible = true")
 	}
 
 	if len(clauses) != 0 {
 		query += " WHERE " + strings.Join(clauses, " AND ")
 	}
+
+	//check if sort_by parameter is supplied
+	if request.SortBy != nil && request.GetSortBy() != "" {
+		sortByFields := strings.Split(request.GetSortBy(), ",")
+		tableFields := []string{"id", "meeting_id", "name", "number", "visible", "advertised_start_time"}
+		validSortByFields := checkSortByFields(sortByFields, tableFields)
+		if len(validSortByFields) == 0 {
+			query += " ORDER BY advertised_start_time ASC"
+		} else {
+			//generate SQL command from valid sort_by fields
+			query += " ORDER BY " + strings.Join(validSortByFields, ",")
+		}
+		return query, args
+	}
+
+	//add default ordering
+	query += " ORDER BY advertised_start_time ASC"
 
 	return query, args
 }
@@ -122,4 +139,22 @@ func (m *racesRepo) scanRaces(
 	}
 
 	return races, nil
+}
+
+// return valid sort_by fields - fields that exist in table
+// copied from https://go.dev/play/p/eGGcyIlZD6y
+func checkSortByFields(tableFields []string, orderFields []string) []string {
+	out := []string{}
+	bucket := map[string]bool{}
+
+	for _, i := range tableFields {
+		for _, j := range orderFields {
+			if i == j && !bucket[i] {
+				out = append(out, i)
+				bucket[i] = true
+			}
+		}
+	}
+
+	return out
 }
