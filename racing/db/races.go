@@ -128,6 +128,16 @@ func (m *racesRepo) scanRaces(
 			return nil, err
 		}
 
+		/*	Add status to racing results
+			All races that have an advertised_start_time
+			in the past should reflect CLOSED.
+		*/
+		if advertisedStart.After(time.Now()) {
+			race.Status = "OPEN"
+		} else {
+			race.Status = "CLOSED"
+		}
+
 		ts, err := ptypes.TimestampProto(advertisedStart)
 		if err != nil {
 			return nil, err
