@@ -9,7 +9,12 @@ import "google/api/annotations.proto";
 service Racing {
   // ListRaces returns a list of all races.
   rpc ListRaces(ListRacesRequest) returns (ListRacesResponse) {
-    option (google.api.http) = { post: "/v1/list-races", body: "*" };
+    option (google.api.http) = {post: "/v1/list-races", body: "*"};
+  }
+
+  // GetRace will return a race by id
+  rpc GetRace(GetRaceRequest) returns (Race) {
+    option (google.api.http) = {get: "/v1/race/{id}"};
   }
 }
 
@@ -19,6 +24,11 @@ service Racing {
 message ListRacesRequest {
   ListRacesRequestFilter filter = 1;
   optional string sort_by = 2;
+}
+
+// Request for GetRace call.
+message GetRaceRequest {
+  uint64 id = 1;
 }
 
 // Response to ListRaces call.
