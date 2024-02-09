@@ -17,11 +17,6 @@ func getRaceQueries() map[string]string {
 				advertised_start_time 
 			FROM races
 		`,
-	}
-}
-
-func getRaceById() map[string]string {
-	return map[string]string{
 		race: `
 			SELECT 
 				id, 

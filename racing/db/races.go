@@ -64,6 +64,7 @@ func (r *racesRepo) List(request *racing.ListRacesRequest) ([]*racing.Race, erro
 	return r.scanRaces(rows)
 }
 
+// Get - get race by id
 func (r *racesRepo) Get(request *racing.GetRaceRequest) (*racing.Race, error) {
 	var (
 		err   error
@@ -71,7 +72,7 @@ func (r *racesRepo) Get(request *racing.GetRaceRequest) (*racing.Race, error) {
 		args  []interface{}
 	)
 
-	query = getRaceById()[race]
+	query = getRaceQueries()[race]
 
 	args = append(args, request.Id)
 	rows, err := r.db.Query(query, args...)
@@ -82,8 +83,16 @@ func (r *racesRepo) Get(request *racing.GetRaceRequest) (*racing.Race, error) {
 	//reuse scanRaces
 	races, err := r.scanRaces(rows)
 
-	//return the first record
-	return races[0], nil
+	if len(races) > 0 {
+		//return the first record
+		return races[0], nil
+	} else {
+		//if race is not found return an empty race
+		//just like declaring a string which has a default value of ''
+		//TODO:: might change to nil or return an error depends on detailed specs
+		return new(racing.Race), nil
+	}
+
 }
 
 func (r *racesRepo) applyFilter(query string, request *racing.ListRacesRequest) (string, []interface{}) {
