@@ -1,19 +1,20 @@
 package main
 
 import (
+	"cruzes.co/junedc/entain/sport/db"
+	"cruzes.co/junedc/entain/sport/proto/sport"
+	"cruzes.co/junedc/entain/sport/service"
 	"database/sql"
 	"flag"
+
 	"log"
 	"net"
 
-	"cruzes.co/junedc/entain/racing/db"
-	"cruzes.co/junedc/entain/racing/proto/racing"
-	"cruzes.co/junedc/entain/racing/service"
 	"google.golang.org/grpc"
 )
 
 var (
-	grpcEndpoint = flag.String("grpc-endpoint", "localhost:9000", "gRPC server endpoint")
+	grpcEndpoint = flag.String("grpc-endpoint", "localhost:9091", "gRPC server endpoint")
 )
 
 func main() {
@@ -25,27 +26,27 @@ func main() {
 }
 
 func run() error {
-	conn, err := net.Listen("tcp", ":9000")
+	conn, err := net.Listen("tcp", ":9091")
 	if err != nil {
 		return err
 	}
 
-	racingDB, err := sql.Open("sqlite3", "./db/racing.db")
+	eventDB, err := sql.Open("sqlite3", "./db/racing.db")
 	if err != nil {
 		return err
 	}
 
-	racesRepo := db.NewRacesRepo(racingDB)
-	if err := racesRepo.Init(); err != nil {
+	eventsRepo := db.NewEventsRepo(eventDB)
+	if err := eventsRepo.Init(); err != nil {
 		return err
 	}
 
 	grpcServer := grpc.NewServer()
 
-	racing.RegisterRacingServer(
+	sport.RegisterSportServer(
 		grpcServer,
-		service.NewRacingService(
-			racesRepo,
+		service.NewSportService(
+			eventsRepo,
 		),
 	)
 

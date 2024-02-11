@@ -1,4 +1,4 @@
-module git.neds.sh/matty/entain/api
+module cruzes.co/junedc/entain/api
 
 go 1.16
 

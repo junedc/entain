@@ -1,4 +1,4 @@
-module cruzes.co/junedc/entain/racing
+module cruzes.co/junedc/entain/sport
 
 go 1.16
 
